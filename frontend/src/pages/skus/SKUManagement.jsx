@@ -23,7 +23,12 @@ import {
   Pagination,
   Alert,
   Skeleton,
-  Divider
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  TablePagination,
+  Paper
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -33,7 +38,10 @@ import {
   Delete as DeleteIcon,
   Visibility as VisibilityIcon,
   MoreVert as MoreVertIcon,
-  Archive as ArchiveIcon
+  Archive as ArchiveIcon,
+  Sort as SortIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -49,10 +57,15 @@ function SKUManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0); // Changed to 0-based for TablePagination
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [viewMode, setViewMode] = useState('grid');
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState('asc');
+  const [sortMenuAnchor, setSortMenuAnchor] = useState(null);
   const [filters, setFilters] = useState({
     category: [],
     warehouse: [],
@@ -64,9 +77,20 @@ function SKUManagement() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
 
+  // Sort options
+  const sortOptions = [
+    { value: 'name', label: 'Product Name' },
+    { value: 'sku', label: 'SKU Code' },
+    { value: 'category', label: 'Category' },
+    { value: 'sellingPrice', label: 'Selling Price' },
+    { value: 'costPrice', label: 'Cost Price' },
+    { value: 'currentStock', label: 'Current Stock' },
+    { value: 'lastUpdated', label: 'Last Updated' }
+  ];
+
   useEffect(() => {
     fetchSKUs();
-  }, [page, filters]);
+  }, [page, rowsPerPage, filters, sortBy, sortOrder]);
 
   // This is a mock function that would normally fetch data from the API
   const fetchSKUs = async () => {
@@ -74,14 +98,17 @@ function SKUManagement() {
       setLoading(true);
       const response = await axios.get('/api/skus', {
         params: {
-          page,
-          limit: 12,
+          page: page + 1, // Convert back to 1-based for API
+          limit: rowsPerPage,
           search: searchTerm,
+          sortBy,
+          sortOrder,
           ...filters
         }
       });
       setSkUs(response.data.skus);
       setTotalPages(response.data.pages);
+      setTotalCount(response.data.total);
       setLoading(false);
     } catch (err) {
       setError('Failed to load SKUs. Please try again later.');
@@ -90,7 +117,7 @@ function SKUManagement() {
   };
 
   const handleSearch = () => {
-    setPage(1);
+    setPage(0); // Reset to first page
     fetchSKUs();
   };
 
@@ -102,7 +129,7 @@ function SKUManagement() {
 
   const handleFilterApply = (newFilters) => {
     setFilters(newFilters);
-    setPage(1);
+    setPage(0);
     setFilterDialogOpen(false);
   };
 
@@ -114,8 +141,28 @@ function SKUManagement() {
       maxStock: '',
       supplier: []
     });
-    setPage(1);
+    setPage(0);
     setFilterDialogOpen(false);
+  };
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const handleSortChange = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+    setSortMenuAnchor(null);
+    setPage(0);
   };
 
   const handleDeleteSKU = async () => {
@@ -179,6 +226,10 @@ function SKUManagement() {
     }
   };
 
+  // Calculate displayed entries
+  const startEntry = page * rowsPerPage + 1;
+  const endEntry = Math.min((page + 1) * rowsPerPage, totalCount);
+
   return (
     <Box>
       {error && (
@@ -204,7 +255,7 @@ function SKUManagement() {
 
       <Box sx={{ mb: 3 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={6} lg={8}>
+          <Grid item xs={12} md={6} lg={6}>
             <TextField
               fullWidth
               placeholder="Search by SKU, name, or barcode..."
@@ -222,13 +273,12 @@ function SKUManagement() {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={6} lg={4}>
+          <Grid item xs={12} md={6} lg={6}>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
                 variant="outlined"
                 color="primary"
                 startIcon={<FilterListIcon />}
-                sx={{ flexGrow: 1 }}
                 onClick={() => setFilterDialogOpen(true)}
               >
                 Filters
@@ -242,6 +292,14 @@ function SKUManagement() {
                     sx={{ ml: 1 }}
                   />
                 )}
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<SortIcon />}
+                endIcon={sortOrder === 'asc' ? <ArrowUpwardIcon /> : <ArrowDownwardIcon />}
+                onClick={(e) => setSortMenuAnchor(e.currentTarget)}
+              >
+                Sort: {sortOptions.find(opt => opt.value === sortBy)?.label}
               </Button>
               <Button
                 variant="outlined"
@@ -261,6 +319,45 @@ function SKUManagement() {
           </Grid>
         </Grid>
       </Box>
+
+      {/* Results Summary */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 2, 
+          mb: 2, 
+          bgcolor: 'grey.50',
+          borderRadius: 1,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          {loading ? (
+            <Skeleton width={200} />
+          ) : (
+            `Showing ${startEntry} to ${endEntry} of ${totalCount} entries`
+          )}
+        </Typography>
+        
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Rows per page:
+          </Typography>
+          <FormControl size="small" sx={{ minWidth: 80 }}>
+            <Select
+              value={rowsPerPage}
+              onChange={handleChangeRowsPerPage}
+              variant="outlined"
+            >
+              <MenuItem value={50}>50</MenuItem>
+              <MenuItem value={100}>100</MenuItem>
+              <MenuItem value={200}>200</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+      </Paper>
       
       {viewMode === 'grid' ? (
         <>
@@ -271,8 +368,8 @@ function SKUManagement() {
           >
             <Grid container spacing={3}>
               {loading ? (
-                // Skeleton loading
-                Array(12).fill(0).map((_, index) => (
+                // Skeleton loading - show based on rowsPerPage
+                Array(Math.min(rowsPerPage, 12)).fill(0).map((_, index) => (
                   <Grid item xs={12} sm={6} md={4} lg={3} key={`skeleton-${index}`}>
                     <motion.div variants={itemVariants}>
                       <Card sx={{ height: '100%', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.08)' }}>
@@ -314,7 +411,7 @@ function SKUManagement() {
           {loading ? (
             <>
               <Skeleton variant="rectangular" width="100%" height={56} />
-              {Array(5).fill(0).map((_, index) => (
+              {Array(Math.min(rowsPerPage, 10)).fill(0).map((_, index) => (
                 <Skeleton key={index} variant="rectangular" width="100%" height={52} sx={{ mt: 0.5 }} />
               ))}
             </>
@@ -327,23 +424,70 @@ function SKUManagement() {
                 setSelectedSku(sku);
                 setDeleteDialogOpen(true);
               }}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={handleSortChange}
             />
           )}
         </Box>
       )}
 
-      {/* Pagination */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <Pagination 
-          count={totalPages} 
-          page={page} 
-          onChange={(e, newPage) => setPage(newPage)}
-          color="primary"
-          size="large"
-          showFirstButton
-          showLastButton
-        />
-      </Box>
+      {/* Enhanced Pagination */}
+      <Paper elevation={0} sx={{ mt: 3, p: 2, bgcolor: 'grey.50' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            {loading ? (
+              <Skeleton width={150} />
+            ) : (
+              `Showing ${startEntry} to ${endEntry} of ${totalCount} entries`
+            )}
+          </Typography>
+          
+          <TablePagination
+            component="div"
+            count={totalCount}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            rowsPerPageOptions={[50, 100, 200]}
+            showFirstButton
+            showLastButton
+            sx={{
+              '& .MuiTablePagination-toolbar': {
+                minHeight: 'auto',
+                paddingLeft: 0,
+                paddingRight: 0,
+              },
+              '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                margin: 0,
+              }
+            }}
+          />
+        </Box>
+      </Paper>
+
+      {/* Sort Menu */}
+      <Menu
+        anchorEl={sortMenuAnchor}
+        open={Boolean(sortMenuAnchor)}
+        onClose={() => setSortMenuAnchor(null)}
+      >
+        {sortOptions.map((option) => (
+          <MenuItem 
+            key={option.value}
+            onClick={() => handleSortChange(option.value)}
+            selected={sortBy === option.value}
+          >
+            <ListItemText>{option.label}</ListItemText>
+            {sortBy === option.value && (
+              <ListItemIcon sx={{ minWidth: 'auto', ml: 1 }}>
+                {sortOrder === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />}
+              </ListItemIcon>
+            )}
+          </MenuItem>
+        ))}
+      </Menu>
 
       {/* Filter Dialog */}
       <SKUFilterDialog

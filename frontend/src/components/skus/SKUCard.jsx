@@ -120,7 +120,7 @@ function SKUCard({ sku, onEdit, onView, onDelete }) {
                 Price:
               </Typography>
               <Typography variant="body1" fontWeight="medium" align="right">
-                ${sku.sellingPrice}
+                ₹{sku.sellingPrice}
               </Typography>
             </Box>
           </Box>

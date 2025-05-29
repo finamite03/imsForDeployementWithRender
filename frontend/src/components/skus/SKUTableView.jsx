@@ -99,7 +99,7 @@ function SKUTableView({ skus, onEdit, onView, onDelete }) {
                     sx={{ fontWeight: isLowStock ? 600 : 400 }}
                   />
                 </TableCell>
-                <TableCell>${sku.sellingPrice}</TableCell>
+                <TableCell>₹{sku.sellingPrice}</TableCell>
                 <TableCell>{sku.location}</TableCell>
                 <TableCell>
                   {sku.lastUpdated ? format(new Date(sku.lastUpdated), 'MMM dd, yyyy') : 'N/A'}

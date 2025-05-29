@@ -150,7 +150,7 @@ function Dashboard() {
             <motion.div variants={itemVariants}>
               <DashboardCard 
                 title="Active Inventory Value"
-                value={loading ? <Skeleton width={100} /> : `$${data.activeInventoryValue.toLocaleString()}`}
+                value={loading ? <Skeleton width={100} /> : `₹${data.activeInventoryValue.toLocaleString()}`}
                 icon={<TrendingUpIcon />}
                 color={theme.palette.secondary.main}
                 onClick={() => navigate('/skus')}

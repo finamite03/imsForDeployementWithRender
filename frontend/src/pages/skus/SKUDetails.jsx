@@ -307,7 +307,7 @@ function SKUDetails() {
                   Cost Price
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                  ${sku.costPrice}
+                  ₹{sku.costPrice}
                 </Typography>
               </Grid>
               <Grid item xs={6}>
@@ -315,7 +315,7 @@ function SKUDetails() {
                   Selling Price
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                  ${sku.sellingPrice}
+                  ₹{sku.sellingPrice}
                 </Typography>
               </Grid>
             </Grid>
