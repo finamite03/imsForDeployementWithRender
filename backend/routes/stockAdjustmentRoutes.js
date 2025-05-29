@@ -1,16 +1,22 @@
 import express from 'express';
+import {
+  createStockAdjustment,
+  getStockAdjustments,
+  getStockAdjustmentById,
+  getStockAdjustmentStats
+} from '../controllers/stockAdjustmentController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// TODO: Add stock adjustment controller functions
 router.route('/')
-  .get(protect, (req, res) => res.json([]))
-  .post(protect, (req, res) => res.status(201).json({}));
+  .post(protect, createStockAdjustment)
+  .get(protect, getStockAdjustments);
+
+router.route('/stats')
+  .get(protect, getStockAdjustmentStats);
 
 router.route('/:id')
-  .get(protect, (req, res) => res.json({}))
-  .put(protect, (req, res) => res.json({}))
-  .delete(protect, (req, res) => res.json({ message: 'Stock adjustment removed' }));
+  .get(protect, getStockAdjustmentById);
 
 export default router;

@@ -98,7 +98,7 @@ function SKUManagement() {
       setLoading(true);
       const response = await axios.get('/api/skus', {
         params: {
-          page: page + 1, // Convert back to 1-based for API
+          page: page + 1,
           limit: rowsPerPage,
           search: searchTerm,
           sortBy,
@@ -106,7 +106,22 @@ function SKUManagement() {
           ...filters
         }
       });
-      setSkUs(response.data.skus);
+      let fetchedSkus = response.data.skus;
+
+      // Frontend sorting fallback if backend doesn't sort
+      if (!response.data.sorted) { // Assume backend can set this flag if sorted
+        fetchedSkus = [...fetchedSkus].sort((a, b) => {
+          let aValue = a[sortBy];
+          let bValue = b[sortBy];
+          if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+          if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+          if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+          if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+
+      setSkUs(fetchedSkus);
       setTotalPages(response.data.pages);
       setTotalCount(response.data.total);
       setLoading(false);

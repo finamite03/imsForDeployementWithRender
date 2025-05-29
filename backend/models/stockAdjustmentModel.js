@@ -12,11 +12,11 @@ const stockAdjustmentSchema = mongoose.Schema(
       ref: 'SKU',
       required: true,
     },
-    warehouse: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Warehouse',
-      required: true,
-    },
+    // warehouse: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: 'Warehouse',
+    //   required: true,
+    // },
     quantity: {
       type: Number,
       required: true,

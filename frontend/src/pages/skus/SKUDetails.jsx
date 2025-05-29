@@ -35,52 +35,9 @@ function SKUDetails() {
     const fetchSKU = async () => {
       try {
         setLoading(true);
-        // In a real app, you would use:
-        // const response = await axios.get(`/api/skus/${id}`);
-        // setSku(response.data);
-        
-        // For demo purposes, we'll simulate the API call
-        setTimeout(() => {
-          const mockSKU = {
-            id: id,
-            name: 'Sample Product',
-            sku: `SKU${id}`,
-            barcode: `100000${id}`,
-            description: 'This is a sample product description that explains the features and benefits of the product.',
-            category: 'Electronics',
-            costPrice: 75.50,
-            sellingPrice: 129.99,
-            currentStock: 85,
-            minStockLevel: 10,
-            warehouse: 'Warehouse A',
-            supplier: 'Supplier A',
-            alternateSuppliers: ['Supplier B', 'Supplier C'],
-            tags: ['Premium', 'New Arrival'],
-            notes: 'Special handling required',
-            isActive: true,
-            location: 'Aisle 5, Shelf 3',
-            image: `https://source.unsplash.com/random/800x600?product&sig=${id}`,
-            lastUpdated: new Date().toISOString(),
-            transactions: [
-              {
-                id: 1,
-                type: 'purchase',
-                quantity: 100,
-                date: '2023-12-01',
-                reference: 'PO-001'
-              },
-              {
-                id: 2,
-                type: 'sale',
-                quantity: -15,
-                date: '2023-12-05',
-                reference: 'SO-001'
-              }
-            ]
-          };
-          setSku(mockSKU);
-          setLoading(false);
-        }, 1000);
+        const response = await axios.get(`/api/skus/${id}`);
+        setSku(response.data);
+        setLoading(false);
       } catch (err) {
         setError('Failed to load SKU details. Please try again later.');
         setLoading(false);
@@ -148,7 +105,7 @@ function SKUDetails() {
             <Box sx={{ display: 'flex', gap: 3, mb: 3 }}>
               <Box
                 component="img"
-                src={sku.image}
+                src={sku.imageUrl || sku.image}
                 alt={sku.name}
                 sx={{
                   width: 200,
@@ -174,7 +131,7 @@ function SKUDetails() {
                     size="small"
                     sx={{ mr: 1 }}
                   />
-                  {sku.tags.map((tag) => (
+                  {sku.tags && sku.tags.map((tag) => (
                     <Chip
                       key={tag}
                       label={tag}
@@ -212,7 +169,7 @@ function SKUDetails() {
                   Location
                 </Typography>
                 <Typography variant="body1">
-                  {sku.location}
+                  {sku.location || sku.warehouseId?.name || 'N/A'}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -220,7 +177,7 @@ function SKUDetails() {
                   Last Updated
                 </Typography>
                 <Typography variant="body1">
-                  {format(new Date(sku.lastUpdated), 'MMM dd, yyyy')}
+                  {sku.updatedAt ? format(new Date(sku.updatedAt), 'MMM dd, yyyy') : 'N/A'}
                 </Typography>
               </Grid>
               {sku.notes && (
@@ -240,34 +197,41 @@ function SKUDetails() {
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
               Recent Transactions
             </Typography>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Quantity</TableCell>
-                    <TableCell>Reference</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {sku.transactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell>{format(new Date(transaction.date), 'MMM dd, yyyy')}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={transaction.type}
-                          color={transaction.type === 'purchase' ? 'primary' : 'secondary'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>{transaction.quantity}</TableCell>
-                      <TableCell>{transaction.reference}</TableCell>
+            {/* If you have transactions from backend, map them here */}
+            {sku.transactions && sku.transactions.length > 0 ? (
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Date</TableCell>
+                      <TableCell>Type</TableCell>
+                      <TableCell>Quantity</TableCell>
+                      <TableCell>Reference</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {sku.transactions.map((transaction) => (
+                      <TableRow key={transaction._id || transaction.id}>
+                        <TableCell>{format(new Date(transaction.date), 'MMM dd, yyyy')}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={transaction.type}
+                            color={transaction.type === 'purchase' ? 'primary' : 'secondary'}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>{transaction.quantity}</TableCell>
+                        <TableCell>{transaction.reference}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No transactions found.
+              </Typography>
+            )}
           </Paper>
         </Grid>
 
@@ -329,17 +293,17 @@ function SKUDetails() {
               Warehouse
             </Typography>
             <Typography variant="body1" gutterBottom>
-              {sku.warehouse}
+              {sku.warehouseId?.name || 'N/A'}
             </Typography>
 
             <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
               Primary Supplier
             </Typography>
             <Typography variant="body1" gutterBottom>
-              {sku.supplier}
+              {sku.supplierId?.name || 'N/A'}
             </Typography>
 
-            {sku.alternateSuppliers.length > 0 && (
+            {sku.alternateSuppliers && sku.alternateSuppliers.length > 0 && (
               <>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
                   Alternate Suppliers
@@ -347,8 +311,8 @@ function SKUDetails() {
                 <Box sx={{ mt: 1 }}>
                   {sku.alternateSuppliers.map((supplier) => (
                     <Chip
-                      key={supplier}
-                      label={supplier}
+                      key={supplier._id || supplier}
+                      label={supplier.name || supplier}
                       size="small"
                       variant="outlined"
                       sx={{ mr: 1, mb: 1 }}

@@ -143,22 +143,23 @@ function AddEditSKU() {
     const fetchData = async () => {
       setInitialLoading(true);
       try {
-        // Fetch warehouses and suppliers in parallel
-        const [warehousesRes, suppliersRes] = await Promise.all([
+        // Fetch warehouses and suppliers
+        const [warehouseRes, supplierRes] = await Promise.all([
           axios.get('/api/warehouses'),
-          axios.get('/api/suppliers')
+          axios.get('/api/suppliers'),
         ]);
-        setWarehouses(warehousesRes.data);
-        setSuppliers(suppliersRes.data);
+        setWarehouses(warehouseRes.data);
+        setSuppliers(supplierRes.data);
 
-        // If editing, fetch SKU details
         if (isEdit) {
+          // Fetch SKU details
           const { data } = await axios.get(`/api/skus/${id}`);
-          // Set form values here, after warehouses and suppliers are loaded
           formik.setValues({
+            ...formik.initialValues,
             ...data,
-            warehouseId: data.warehouseId, // Make sure this matches the dropdown value
-            supplierId: data.supplierId,   // Make sure this matches the dropdown value
+            warehouseId: data.warehouseId?._id || data.warehouseId || '',
+            supplierId: data.supplierId?._id || data.supplierId || '',
+            alternateSuppliers: data.alternateSuppliers?.map(s => s._id) || [],
           });
         }
       } catch (err) {
@@ -166,6 +167,7 @@ function AddEditSKU() {
       }
       setInitialLoading(false);
     };
+
     fetchData();
   }, [id, isEdit]);
 
