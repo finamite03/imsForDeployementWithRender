@@ -161,7 +161,7 @@ function Dashboard() {
             <motion.div variants={itemVariants}>
               <DashboardCard 
                 title="Low Stock Items"
-                value={loading ? <Skeleton width={50} /> : data.lowStockItems}
+                value={loading ? <Skeleton width={50} /> : data.lowStockItems.length}
                 icon={<WarningIcon />}
                 color={theme.palette.warning.main}
                 onClick={() => navigate('/stock-adjustments')}
